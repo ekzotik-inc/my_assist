@@ -18,6 +18,16 @@ import logging
 import os
 from collections import defaultdict, deque
 
+# В корпоративных сетях трафик часто идёт через TLS-прокси с собственным
+# корневым сертификатом. truststore заставляет Python доверять системному
+# хранилищу сертификатов Windows, куда этот CA уже добавлен IT-отделом.
+try:
+    import truststore
+
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from dotenv import load_dotenv
