@@ -33,7 +33,7 @@ python bot.py
 |----------------------|-----------------------------------------------------------------|
 | `TELEGRAM_BOT_TOKEN` | Токен бота из @BotFather                                        |
 | `AI_API_KEY`         | Ключ ИИ-провайдера                                              |
-| `AI_BASE_URL`        | Базовый URL API (по умолчанию `https://console.openmodel.ai/v1`)|
+| `AI_BASE_URL`        | Базовый URL API (по умолчанию `https://api.openmodel.app/v1`)|
 | `AI_MODEL`           | Имя модели, например `deepseek-v4-flash`                        |
 | `SYSTEM_PROMPT`      | Инструкция для ассистента — как себя вести                      |
 | `HISTORY_LIMIT`      | Сколько последних пар реплик помнить                            |

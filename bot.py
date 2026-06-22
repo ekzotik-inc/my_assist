@@ -54,7 +54,7 @@ def _require(name: str) -> str:
 
 BOT_TOKEN = _require("TELEGRAM_BOT_TOKEN")
 AI_API_KEY = _require("AI_API_KEY")
-AI_BASE_URL = os.getenv("AI_BASE_URL", "https://console.openmodel.ai/v1")
+AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openmodel.app/v1")
 AI_MODEL = os.getenv("AI_MODEL", "deepseek-v4-flash")
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
