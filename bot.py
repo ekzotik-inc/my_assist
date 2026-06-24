@@ -61,6 +61,8 @@ AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openmodel.ai")  # api, не 
 AI_MODEL    = os.getenv("AI_MODEL", "deepseek-v4-flash")
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "10"))
 MAX_TOKENS    = int(os.getenv("MAX_TOKENS", "1024"))
+# Явный таймаут запроса (сек) — отключает эвристику SDK про 10-минутные запросы.
+REQUEST_TIMEOUT = float(os.getenv("REQUEST_TIMEOUT", "120"))
 
 # Базовый стиль персоны. Подробные знания живут в cases.txt.
 PERSONA_PROMPT = os.getenv(
@@ -80,7 +82,7 @@ AUTO_LEARN = os.getenv("AUTO_LEARN", "1") == "1"
 KNOWLEDGE_FILE = BASE_DIR / os.getenv("KNOWLEDGE_FILE", "cases.txt")
 MEMORY_FILE    = BASE_DIR / os.getenv("MEMORY_FILE", "memory.jsonl")
 
-ai  = AsyncAnthropic(api_key=AI_API_KEY, base_url=AI_BASE_URL)
+ai  = AsyncAnthropic(api_key=AI_API_KEY, base_url=AI_BASE_URL, timeout=REQUEST_TIMEOUT)
 bot = Bot(token=BOT_TOKEN)
 dp  = Dispatcher()
 
@@ -172,6 +174,7 @@ async def ask_ai(chat_id: int, user_text: str) -> str:
         max_tokens=MAX_TOKENS,
         system=build_system_prompt(),
         messages=messages,
+        timeout=REQUEST_TIMEOUT,
     )
     answer = _extract_text(msg)
 
@@ -206,6 +209,7 @@ async def maybe_learn(user_text: str, answer: str) -> None:
                 "role": "user",
                 "content": f"Вопрос: {user_text}\nОтвет ассистента: {answer}",
             }],
+            timeout=REQUEST_TIMEOUT,
         )
         raw = _extract_text(probe).strip()
         # Вырезаем JSON из возможной обёртки в markdown.
