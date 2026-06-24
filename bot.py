@@ -32,13 +32,17 @@ from anthropic import AsyncAnthropic
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # консоль (при ручном запуске)
+        logging.FileHandler(BASE_DIR / "bot.log", encoding="utf-8"),  # фон/служба
+    ],
 )
 log = logging.getLogger("ai-assistant")
-
-BASE_DIR = Path(__file__).resolve().parent
 
 
 def _require(name: str) -> str:
