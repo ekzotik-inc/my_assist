@@ -1,7 +1,7 @@
 # AI-ассистент для Telegram Business (персона «Денис»)
 
 Бот отвечает клиентам в твоих бизнес-чатах (Telegram для бизнеса) **от твоего
-имени**, используя ИИ-модель DeepSeek V4 Flash через OpenModel.
+имени**, используя бесплатную модель Google Gemini.
 
 Особенности:
 - **Знания о тебе** и кейсы лежат в `cases.txt` — обычный текстовый файл.
@@ -23,9 +23,9 @@ python bot.py
 | Переменная           | Описание                                                        |
 |----------------------|-----------------------------------------------------------------|
 | `TELEGRAM_BOT_TOKEN` | Токен бота из @BotFather                                        |
-| `AI_API_KEY`         | Ключ OpenModel                                                  |
-| `AI_BASE_URL`        | Базовый URL API (по умолчанию `https://api.openmodel.ai`)      |
-| `AI_MODEL`           | Имя модели, например `deepseek-v4-flash`                        |
+| `AI_API_KEY`         | Ключ Google Gemini (AI Studio)                                 |
+| `AI_BASE_URL`        | OpenAI-совместимый endpoint Gemini (менять не нужно)           |
+| `AI_MODEL`           | `gemini-2.5-flash` / `-flash-lite` / `-pro`                    |
 | `OWNER_ID`           | Твой Telegram user id — только ты управляешь обучением          |
 | `AUTO_LEARN`         | `1` — бот учится сам, `0` — выключить                           |
 | `SYSTEM_PROMPT`      | Базовый стиль/персона (подробности — в `cases.txt`)            |

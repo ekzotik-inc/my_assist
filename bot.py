@@ -1,4 +1,4 @@
-"""AI-ассистент для Telegram Business на DeepSeek V4 Flash (OpenModel).
+"""AI-ассистент для Telegram Business на Google Gemini (бесплатный тир).
 
 Возможности:
 - Отвечает клиентам в бизнес-чатах от имени владельца.
@@ -28,7 +28,7 @@ from pathlib import Path
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from dotenv import load_dotenv
-from anthropic import AsyncAnthropic
+from openai import AsyncOpenAI
 
 load_dotenv()
 
@@ -57,8 +57,9 @@ def _require(name: str) -> str:
 
 BOT_TOKEN   = _require("TELEGRAM_BOT_TOKEN")
 AI_API_KEY  = _require("AI_API_KEY")
-AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.openmodel.ai")  # api, не console!
-AI_MODEL    = os.getenv("AI_MODEL", "deepseek-v4-flash")
+# Gemini через OpenAI-совместимый endpoint.
+AI_BASE_URL = os.getenv("AI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+AI_MODEL    = os.getenv("AI_MODEL", "gemini-2.5-flash")
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "10"))
 MAX_TOKENS    = int(os.getenv("MAX_TOKENS", "1024"))
 # Явный таймаут запроса (сек) — отключает эвристику SDK про 10-минутные запросы.
@@ -82,7 +83,7 @@ AUTO_LEARN = os.getenv("AUTO_LEARN", "1") == "1"
 KNOWLEDGE_FILE = BASE_DIR / os.getenv("KNOWLEDGE_FILE", "cases.txt")
 MEMORY_FILE    = BASE_DIR / os.getenv("MEMORY_FILE", "memory.jsonl")
 
-ai  = AsyncAnthropic(api_key=AI_API_KEY, base_url=AI_BASE_URL, timeout=REQUEST_TIMEOUT)
+ai  = AsyncOpenAI(api_key=AI_API_KEY, base_url=AI_BASE_URL, timeout=REQUEST_TIMEOUT)
 bot = Bot(token=BOT_TOKEN)
 dp  = Dispatcher()
 
@@ -154,29 +155,22 @@ def build_system_prompt() -> str:
 # --------------------------------------------------------------------------- #
 # Обращение к модели
 # --------------------------------------------------------------------------- #
-def _extract_text(msg) -> str:
-    """Финальный текст из ответа Anthropic, без блоков 'thinking'."""
-    parts = []
-    for block in msg.content:
-        if getattr(block, "type", None) == "text":
-            parts.append(block.text)
-    text = "\n".join(p.strip() for p in parts if p and p.strip())
-    return text or "(пустой ответ модели)"
-
-
 async def ask_ai(chat_id: int, user_text: str) -> str:
     """Отправляет реплику пользователя в модель с учётом истории диалога."""
     history = _history[chat_id]
-    messages = list(history) + [{"role": "user", "content": user_text}]
+    messages = (
+        [{"role": "system", "content": build_system_prompt()}]
+        + list(history)
+        + [{"role": "user", "content": user_text}]
+    )
 
-    msg = await ai.messages.create(
+    completion = await ai.chat.completions.create(
         model=AI_MODEL,
         max_tokens=MAX_TOKENS,
-        system=build_system_prompt(),
         messages=messages,
         timeout=REQUEST_TIMEOUT,
     )
-    answer = _extract_text(msg)
+    answer = (completion.choices[0].message.content or "").strip() or "(пустой ответ модели)"
 
     history.append({"role": "user",      "content": user_text})
     history.append({"role": "assistant", "content": answer})
@@ -193,25 +187,30 @@ async def maybe_learn(user_text: str, answer: str) -> None:
     if not AUTO_LEARN:
         return
     try:
-        probe = await ai.messages.create(
+        probe = await ai.chat.completions.create(
             model=AI_MODEL,
             max_tokens=200,
-            system=(
-                "Ты — модуль памяти ассистента поддержки. Проанализируй обмен "
-                "репликами. Реши, содержит ли он НОВОЕ переиспользуемое знание "
-                "(правило, решение кейса, факт о процессе), которого ещё нет в "
-                "базе и которое поможет в будущих похожих вопросах. "
-                "НЕ запоминай персональные данные, номера, разовые жалобы и "
-                "общие приветствия. Ответь СТРОГО одной строкой JSON: "
-                '{"remember": true/false, "note": "краткий факт одной фразой"}.'
-            ),
-            messages=[{
-                "role": "user",
-                "content": f"Вопрос: {user_text}\nОтвет ассистента: {answer}",
-            }],
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Ты — модуль памяти ассистента поддержки. Проанализируй обмен "
+                        "репликами. Реши, содержит ли он НОВОЕ переиспользуемое знание "
+                        "(правило, решение кейса, факт о процессе), которого ещё нет в "
+                        "базе и которое поможет в будущих похожих вопросах. "
+                        "НЕ запоминай персональные данные, номера, разовые жалобы и "
+                        "общие приветствия. Ответь СТРОГО одной строкой JSON: "
+                        '{"remember": true/false, "note": "краткий факт одной фразой"}.'
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Вопрос: {user_text}\nОтвет ассистента: {answer}",
+                },
+            ],
             timeout=REQUEST_TIMEOUT,
         )
-        raw = _extract_text(probe).strip()
+        raw = (probe.choices[0].message.content or "").strip()
         # Вырезаем JSON из возможной обёртки в markdown.
         start, end = raw.find("{"), raw.rfind("}")
         if start == -1 or end == -1:
