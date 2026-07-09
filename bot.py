@@ -30,9 +30,10 @@ from aiogram.types import Message
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent
+# Грузим .env строго рядом с bot.py — не зависит от текущей папки запуска
+# (важно при запуске через Планировщик задач / службу).
+load_dotenv(BASE_DIR / ".env")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,12 +46,20 @@ logging.basicConfig(
 log = logging.getLogger("ai-assistant")
 
 
+if not (BASE_DIR / ".env").exists():
+    hint = ""
+    if (BASE_DIR / ".env.txt").exists():
+        hint = " Найден '.env.txt' — Блокнот дописал .txt. Переименуй файл в '.env'."
+    log.warning("Файл .env не найден рядом с bot.py.%s", hint)
+
+
 def _require(name: str) -> str:
     value = os.getenv(name)
     if not value or value.startswith("put-your"):
         raise RuntimeError(
             f"Не задана переменная окружения {name}. "
-            f"Скопируй .env.example в .env и впиши значения."
+            f"Проверь, что файл называется именно '.env' (а не '.env.txt') "
+            f"и лежит рядом с bot.py."
         )
     return value
 
